@@ -1,0 +1,4 @@
+#include "common.h"
+
+unsigned char read_cmos(unsigned char address);
+void write_cmos(unsigned char address, unsigned int data);

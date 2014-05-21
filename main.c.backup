@@ -1,0 +1,83 @@
+#include "descriptor_tables.h"
+#include "isr.h"
+#include "monitor.h"
+#include "cmos.h"
+
+#define BCD2BIN(bcd) ((((bcd) & 15) + ((bcd) >> 4) * 10))
+
+static unsigned long clock = 0;
+static u32int hour = 0;
+static u32int min = 0;
+static u32int sec = 0;
+
+void print_clock()
+{
+	u8int y = 0;
+	u8int x = 71;
+	set_cur(x, y);
+
+	hour = clock / 20 / 3600;
+	min = (clock / 20 / 60) % 60;
+	sec = (clock / 20) % 60;
+
+	set_forecolor(5);
+	if(hour < 10)
+		monitor_write_dec(0);
+	monitor_write_dec(hour);
+	set_forecolor(15);
+	monitor_write(":");
+	set_forecolor(8);
+	if(min < 10)
+		monitor_write_dec(0);
+	monitor_write_dec(min);
+	set_forecolor(15);
+	monitor_write(":");
+	set_forecolor(11);
+	if(sec < 10)
+		monitor_write_dec(0);
+	monitor_write_dec(sec);
+	
+}
+
+static void callback_func()
+{
+	clock++;
+	if(clock % 20 == 0)
+	{
+		print_clock();
+	}
+}
+
+void init_clock(u32int frequency)
+{
+	unsigned int seconds;
+	seconds = read_cmos(0x0);
+	seconds = BCD2BIN(seconds);
+	clock = (unsigned long)seconds;
+    register_interrupt_handler(IRQ0, &callback_func);
+
+    u32int divisor = 1193180 / frequency;
+
+    outb(0x43, 0x36);
+
+    u8int l = (u8int)(divisor & 0xFF);
+    u8int h = (u8int)( (divisor>>8) & 0xFF );
+
+    outb(0x40, l);
+    outb(0x40, h);
+}
+
+int main(struct multiboot *mboot_ptr)
+{
+    init_descriptor_tables();
+    monitor_clear();
+    init_clock(20);
+    //monitor_write("Welcome to OSx383 Kernel.\n");
+
+    asm volatile("int $0x3");
+    asm volatile("int $0x4");
+
+    asm volatile("sti");
+
+    return 0xDEADBABA;
+}

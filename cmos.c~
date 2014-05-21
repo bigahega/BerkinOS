@@ -1,0 +1,15 @@
+#include "cmos.h"
+
+unsigned char read_cmos(unsigned char address)
+{
+	unsigned char data;
+	outportb(CMOS_ADDREG, address);
+	data = inportb(CMOS_DATAREG);
+	return data;
+}
+
+void write_cmos(unsigned char address, unsigned int data)
+{
+	outportb(CMOS_ADDREG, address);
+	outportb(CMOS_DATAREG, NMI_disable_bit << 7 | data);
+}

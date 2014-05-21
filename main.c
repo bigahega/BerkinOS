@@ -1,0 +1,156 @@
+#include "keyboard.h"
+#include "descriptor_tables.h"
+#include "isr.h"
+#include "monitor.h"
+#include "cmos.h"
+#include "multiboot.h"
+
+#define BCD2BIN(bcd) ((((bcd) & 15) + ((bcd) >> 4) * 10))
+
+static u32int hour, min, sec, day, mon, year;
+u8int old_x, old_y;
+static u8int tick;
+//static unsigned long kernel_tick = 0;
+
+void changetime(u32int h, u32int m, u32int s)
+{
+	hour = h;
+	min = m;
+	sec = s;
+}
+
+void updatetimer() {
+	sec = BCD2BIN(read_cmos(0x0));
+	min = BCD2BIN(read_cmos(0x2));
+	hour = BCD2BIN(read_cmos(0x4));
+	day = BCD2BIN(read_cmos(0x7));
+	mon = BCD2BIN(read_cmos(0x8));
+	year = BCD2BIN(read_cmos(0x9));
+}
+
+void print_clock()
+{
+	tick++;
+	if(tick % 20 == 0) {
+	//kernel_tick++;
+	sec++;
+	if(sec >= 60) {
+		min++;
+		sec %=  60;
+	}
+	if(min >= 60) {
+		hour++;
+		min %= 60;
+	}
+	if(hour >= 24) {
+		day++;
+		hour %= 24;
+	}
+	if(day > 31) {
+		mon++;
+		day %= 31;
+	}
+	if(mon > 12) {
+		year++;
+		mon %= 12;
+	}
+//12/45/67  01:34:67
+	char date[19] = "xx/xx/xx  00:00:00";	
+
+	if(day < 10) {
+		date[0] = '0';
+		date[1] = day + '0';
+	}
+	else {
+		char s_day[3] = "xx";
+		itoa(day, s_day, 10);
+		date[0] = s_day[0];
+		date[1] = s_day[1];
+	}
+	date[2] = '/';
+	if(mon < 10) {
+		date[3] = '0';
+		date[4] = mon + '0';
+	}
+	else {
+		char s_mon[3] = "xx";
+		itoa(day, s_mon, 10);
+		date[3] = s_mon[0];
+		date[4] = s_mon[1];
+	}
+	date[5] = '/';
+	char s_year[3] = "xx";
+	itoa(year, s_year, 10);
+	date[6] = s_year[0];
+	date[7] = s_year[1];
+	date[8] = date[9] = ' ';
+
+	if(hour < 10) {
+		date[10] = '0';
+		date[11] = hour + '0';
+	}
+	else {
+		char s_hour[3] = "xx";
+		itoa(hour, s_hour, 10);
+		date[10] = s_hour[0];
+		date[11] = s_hour[1];
+	}
+	date[12] = ':';
+	if(min < 10) {
+		date[13] = '0';
+		date[14] = min + '0';
+	}
+	else {
+		char s_min[3] = "xx";
+		itoa(min, s_min, 10);
+		date[13] = s_min[0];
+		date[14] = s_min[1];
+	}
+	date[15] = ':';
+	if(sec < 10) {
+		date[16] = '0';
+		date[17] = sec + '0';
+	}
+	else {
+		char s_sec[3] = "xx";
+		itoa(sec, s_sec, 10);
+		date[16] = s_sec[0];
+		date[17] = s_sec[1];
+	}
+	print_datetime(date);
+	tick = 0;
+	}
+}
+
+void init_clock(u32int frequency)
+{
+    register_interrupt_handler(IRQ0, &print_clock);
+
+    u32int divisor = 1193180 / frequency;
+
+    outb(0x43, 0x36);
+
+    u8int l = (u8int)(divisor & 0xFF);
+    u8int h = (u8int)( (divisor>>8) & 0xFF );
+
+    outb(0x40, l);
+    outb(0x40, h);
+
+	updatetimer();
+	tick = 19;
+	print_clock();
+}
+
+int main(struct multiboot *mboot_ptr)
+{
+    init_descriptor_tables();
+    monitor_clear();
+    set_forecolor(14);
+    monitor_write("Welcome to BerkinOS!\n\n");
+    set_forecolor(15);
+    install_keyboard();
+    asm volatile("sti");
+    init_clock(20);
+
+    return 0xDEADBABA;
+}

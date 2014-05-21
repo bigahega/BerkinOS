@@ -1,0 +1,15 @@
+#ifndef MONITOR_H
+#define MONITOR_H
+
+#include "common.h"
+
+u8int get_cur_x();
+u8int get_cur_y();
+void set_cur(u8int x, u8int y);
+void monitor_put(char c);
+void monitor_clear();
+void monitor_write(char *c);
+void showtimer();
+void hidetimer();
+
+#endif

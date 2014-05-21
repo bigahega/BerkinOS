@@ -1,0 +1,2 @@
+void changetime(u32int h, u32int m, u32int s);
+void updatetimer();
