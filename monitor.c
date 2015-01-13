@@ -66,11 +66,11 @@ void set_forecolor(u8int color)
 void print_datetime(char* s)
 {
 	u8int backColour;
-	if(show_time == 1) {
-		backColour = 14;
-	} else { backColour = 0; }
 	u8int old_f = foreColour;
-	foreColour = 0;
+	if(show_time == 1) {
+		backColour = 8;
+		foreColour = 14;
+	} else { backColour = 0; foreColour = 0; }
 	u8int  attributeByte = (backColour << 4) | (foreColour & 0x0F);
 	u16int attribute = attributeByte << 8;
 
@@ -112,12 +112,11 @@ void monitor_put(char c)
 
 	else if(c == '\b')
 	{
-		if(*(location - 1) == ('$' | attribute)) {
-		} else {
-			cursor_x--;
-			location = video_memory + (cursor_y*80 + cursor_x);
-			*location = ' ' | attribute;
-		}
+	  if(cursor_x != 12) {
+		cursor_x--;
+		location = video_memory + (cursor_y*80 + cursor_x);
+		*location = ' ' | attribute;
+	  }
 	}
 
     else if(c >= ' ')

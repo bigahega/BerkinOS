@@ -22,7 +22,7 @@ void changetime(u32int h, u32int m, u32int s)
 void updatetimer() {
 	sec = BCD2BIN(read_cmos(0x0));
 	min = BCD2BIN(read_cmos(0x2));
-	hour = BCD2BIN(read_cmos(0x4));
+	hour = BCD2BIN(read_cmos(0x4)) + 2;
 	day = BCD2BIN(read_cmos(0x7));
 	mon = BCD2BIN(read_cmos(0x8));
 	year = BCD2BIN(read_cmos(0x9));
@@ -145,7 +145,7 @@ int main(struct multiboot *mboot_ptr)
 {
     init_descriptor_tables();
     monitor_clear();
-    set_forecolor(14);
+    set_forecolor(10);
     monitor_write("Welcome to BerkinOS!\n\n");
     set_forecolor(15);
     install_keyboard();

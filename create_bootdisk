@@ -1,0 +1,6 @@
+losetup /dev/loop0 bootdisk.img
+mount /dev/loop0 /mnt
+cp kernel /mnt/
+umount /dev/loop0
+losetup -d /dev/loop0
+
